@@ -197,7 +197,7 @@ tx_characteristic_string.writeValue(tx_estring_value.c_str());
 ble.send_command(CMD.TIME_LOOP,"")
 ```
 
-<img src="/projects/timeloop.png" alt="Time Loop" width="600" height="400">
+<img src="/projects/timeloop.PNG" alt="Time Loop" width="600" height="400">
 
 <h3>Sending Time Data - Arrays</h3>
 This command executes a similar procedure as the looping method for sending time data. However, instead of transmitting each data point directly after it is measured, the array method first collects all of the data and stores it an array. Once the Artemis had finished measuring all of its data, it transmits the entire array to the PC for processing.
