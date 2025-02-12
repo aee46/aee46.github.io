@@ -98,28 +98,28 @@ float correctedRollDeg(ICM_20948_I2C* IMU){
 While this calibration scheme helped improve the accuracy of the accelerometer, the recorded data was still quite noisy. To reduce the sensor's noise, I began by analyzing the frequency spectrum of the sensor's roll and pitch data. I collected four sets of data: stationary and moving data for both the roll and pitch measurements. When taking measurements, I determined that I could record 1587 datapoints in 5.098 seconds, resulting in a sample rate of 311 samples per second. 
 
 <br>
-<img src="/projects/rollstationary.png" alt="Connection" width="400" height="300">
-<img src="/projects/rollstationaryfft.png" alt="Connection" width="400" height="300">
+<img src="/projects/rollstationary.PNG" alt="Connection" width="400" height="300">
+<img src="/projects/rollstationaryfft.PNG" alt="Connection" width="400" height="300">
 
 <br>
-<img src="/projects/rollmoving.png" alt="Connection" width="400" height="300">
-<img src="/projects/rollmovingfft.png" alt="Connection" width="400" height="300">
+<img src="/projects/rollmoving.PNG" alt="Connection" width="400" height="300">
+<img src="/projects/rollmovingfft.PNG" alt="Connection" width="400" height="300">
 
 <br>
-<img src="/projects/pitchstationary.png" alt="Connection" width="400" height="300">
-<img src="/projects/pitchstationaryfft.png" alt="Connection" width="400" height="300">
+<img src="/projects/pitchstationary.PNG" alt="Connection" width="400" height="300">
+<img src="/projects/pitchstationaryfft.PNG" alt="Connection" width="400" height="300">
 
 <br>
-<img src="/projects/pitchmoving.png" alt="Connection" width="400" height="300">
-<img src="/projects/pitchmovingfftnew.png" alt="Connection" width="400" height="300">
+<img src="/projects/pitchmoving.PNG" alt="Connection" width="400" height="300">
+<img src="/projects/pitchmovingfftnew.PNG" alt="Connection" width="400" height="300">
 
 By analyzing each plot, it is clear that most of the significant frequency content is contained below 5 Hz. With the stationary recordings, nearly all of the frequency content is at 0 Hz. With the moving recordings, higher frequencies are detected at significant amplitudes, but this is likely due to the sensor's angle reading switching rapidly between -180 and 180 degrees, as seen in the Moving Pitch graph. With this analysis complete, I implemented a low-pass filter with a cutoff frequency of 2 Hz. 
 
 Using a sample rate of 311 samples per second and a cutoff frequency of 2 Hz, I calculated my filter's alpha value to be 0.0388. Seen in the graphs below, this filter drastically reduced the amount of noise present in the sensor's measurements.
 
 <br>
-<img src="/projects/rollfilter.png" alt="Connection" width="400" height="300">
-<img src="/projects/newpitchfilter.png" alt="Connection" width="400" height="300">
+<img src="/projects/rollfilter.PNG" alt="Connection" width="400" height="300">
+<img src="/projects/newpitchfilter.PNG" alt="Connection" width="400" height="300">
 
 Gyroscope
 ======
@@ -152,10 +152,10 @@ When testing my gyroscope in a stationary position, I noticed that there was a l
 
 <br>
 <img src="/projects/gyrosetup.jpg" alt="Connection" width="400" height="300">
-<img src="/projects/gyrodrift.png" alt="Connection" width="400" height="300">
+<img src="/projects/gyrodrift.PNG" alt="Connection" width="400" height="300">
 
 <br>
-<img src="/projects/gyromoving.png" alt="Connection" width="400" height="300">
+<img src="/projects/gyromoving.PNG" alt="Connection" width="400" height="300">
 
 <br>
 To create my filter, I weighted the gyroscope data with a bias of 0.9, and the accelerometer data was weighted with a bias of 0.1. I chose these values because the gyroscope proved to be far more accurate and less noisy than the accelerometer, but needed data to counter the drift effect of the gyroscope. This filter was applied to the IMU's roll and pitch measurements. Since the accelerometer is not able to measure yaw, I did not apply this filter to the yaw measurement.
@@ -163,11 +163,11 @@ To create my filter, I weighted the gyroscope data with a bias of 0.9, and the a
 With this filter applied, I was able to record both roll and pitch measurements with high accuracy, low noise, and low drift. I conducted three tests - stationary, moving, and vibrational - and the results are shown below. When the IMU is stationary, it is resistant to noise and drift. When the IMU is moving, it is almost free of noise. When the IMU experiences vibrations, it is able to quickly return to recording accruate measurements.
 
 <br>
-<img src="/projects/compfilter.png" alt="Connection" width="400" height="300">
+<img src="/projects/compfilter.PNG" alt="Connection" width="400" height="300">
 <br>
-<img src="/projects/compfiltermoving.png" alt="Connection" width="400" height="300">
+<img src="/projects/compfiltermoving.PNG" alt="Connection" width="400" height="300">
 <br>
-<img src="/projects/compfiltervibration.png" alt="Connection" width="400" height="300">
+<img src="/projects/compfiltervibration.PNG" alt="Connection" width="400" height="300">
 
 Sampling Data
 ======
