@@ -111,7 +111,7 @@ While this calibration scheme helped improve the accuracy of the accelerometer, 
 
 <br>
 <img src="/projects/pitchmoving.PNG" alt="Connection" width="400" height="300">
-<img src="/projects/pitchmovingfftnew.PNG" alt="Connection" width="400" height="300">
+<img src="/projects/pitchmovingfftnew.png" alt="Connection" width="400" height="300">
 
 By analyzing each plot, it is clear that most of the significant frequency content is contained below 5 Hz. With the stationary recordings, nearly all of the frequency content is at 0 Hz. With the moving recordings, higher frequencies are detected at significant amplitudes, but this is likely due to the sensor's angle reading switching rapidly between -180 and 180 degrees, as seen in the Moving Pitch graph. With this analysis complete, I implemented a low-pass filter with a cutoff frequency of 2 Hz. 
 
@@ -119,7 +119,7 @@ Using a sample rate of 311 samples per second and a cutoff frequency of 2 Hz, I 
 
 <br>
 <img src="/projects/rollfilter.PNG" alt="Connection" width="400" height="300">
-<img src="/projects/newpitchfilter.PNG" alt="Connection" width="400" height="300">
+<img src="/projects/newpitchfilter.png" alt="Connection" width="400" height="300">
 
 Gyroscope
 ======
