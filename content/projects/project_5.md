@@ -121,4 +121,104 @@ With these tests and debugging steps out of the way, it was time to begin design
 
 To begin, I implemented a controller that only used the proportional term, which is the measured error multiplied by a specific gain (Kp). One must be careful when setting the desired gain for the proportional term, as large gains can cause oscillations in the controller's response, and could potentially create an unstable system. A proportional gain will act directly upon the measured output, but by neglecting the Integral and Derivative terms, this controller will likely have a sizeable steady state error.
 
-With a desired setpoint of 1 ft (304 mm), I used a controller with a gain of KP = 0.03
+With a desired setpoint of 1 ft (304 mm), I used a controller with a gain of KP = 0.02. This controller was able to successfully control the robot's location to the setpoint. However, the robot did overshoot the setpoint by a small distance. Additionally with this test, I noticed that my robot moves backwards much quicker than it moves forward, so I added some scaling constants to my motor control functions.
+
+Shown below is a video of this test. The robot ends at a position of roughly 1 foot (1 floor tile) from the wall. Additionally, I recorded the output of the controller, the TOF sensor data, and the motor speeds for this test and plotted this data below.
+<br>
+<center><a href="https://youtube.com/shorts/afKAqhyIAq8?feature=share" title="Scope"><img src="/projects/P_SUCCESS.PNG" alt="Scope" width="400" height="300" /></a></center>
+
+<br>
+<center><img src="/projects/PMOTOR_CORRECT.PNG" alt="sensors" width="400" height="300"><img src="/projects/PTOF_CORRECT.PNG" alt="sensors" width="400" height="300"><img src="/projects/PKP_CORRECT.PNG" alt="sensors" width="400" height="300"></center>
+
+This test was done with distance extrapolation implemented on the distance sensor measurements. This procedure is explained in the following section. Additionally, I limited my motor speeds to integer values between 0 and 100, as I multiply the speed my 2.55 to produce a valid PWM write value (between 0 and 255). 
+
+My P control loop consisted of four stages, as seen below. First, the robot records new data (or uses old data if the sensor isn't ready). Next, it calculates the error between the measured data and the programmed setpoint. The controller uses this error to determine what speed to drive the motors at. Last, the controller logs all relevant data.
+
+```Arduino
+void runPIDPositionControl(){
+  // Record TOF Data
+  PIDPOS_current_time = millis();
+  bool PIDPOS_data_ready = false;
+
+  if(!distanceSensor1.checkForDataReady()){
+    PIDPOS_current_distance = PIDPOS_last_measured_distance;
+    PIDPOS_data_ready = false;
+  }
+  else{
+    PIDPOS_current_distance = distanceSensor1.getDistance();
+    PIDPOS_last_measured_distance = PIDPOS_current_distance;
+    distanceSensor1.clearInterrupt();
+    PIDPOS_data_ready = true;
+  }
+
+  // Calculate PID Terms
+  PIDPOS_error = PIDPOS_current_distance - PIDPOS_set_point;
+  PIDPOS_KP_current_term = PIDPOS_KP_CONSTANT * PIDPOS_error;
+  PIDPOS_Total = PIDPOS_KP_current_term;
+
+  // Set Motor Speed
+  set_motor_speed = PIDPOS_speed_scaling_constant * PIDPOS_Total;
+  if(set_motor_speed > 50){
+    set_motor_speed = 50;
+  }
+  else if(set_motor_speed < -50){
+    set_motor_speed = -50;
+  }
+  else if(set_motor_speed < MIN_MOTOR_SPEED && set_motor_speed > 0){
+    set_motor_speed = MIN_MOTOR_SPEED;
+  }
+  driveMotors(set_motor_speed);
+
+  // Log PID Data
+  record_data(PIDPOS_current_time, PIDPOS_current_distance, set_motor_speed, set_motor_speed, PIDPOS_KP_current_term, 0, 0);
+}
+```
+
+With this test, I also calculated the average time for one iteration of the control loop to execute. The mean time between loop cycles was 8.24 ms, corresponding to a loop frequency of 121.3 Hz, much faster than the TOF sampling time.
+
+Distance Extrapolation
+======
+Since the control loop is able to execute much faster than the TOF sensor can record new data, I implemented a simple linear extrapolation algorithm to estimate the robot's distance from the wall in between sensor measurements. This algorithm takes the two previously measured TOF sensor readings and calculates the slope between these two points. Using this slope and the elapsed time since the last sensor reading, the robot estimates its current distance from the wall. This allows the controller to behave more accurately while waiting for new sensor data.
+
+For the above P control test, I recorded when TOF sensor data was ready or not, and plotted the measured and extrapolated distance values below. 
+<br>
+<center><img src="/projects/P_EXTRAPOLATE_FULL.PNG" alt="sensors" width="400" height="300"><img src="/projects/P_EXTRAPOLATE_ZOOM.PNG" alt="sensors" width="400" height="300"></center>
+
+To extrapolate data measurements, I implemented two flag variables to check if the TOF sensor had recorded two measurements yet. Since the extrapolation algorithm requires the previous two data points to compute the next expected value, the robot must wait until it has two sensor measurements recorded. 
+
+```Arduino
+if(!distanceSensor1.checkForDataReady()){
+    if(first_time == false && second_time == false){
+      PIDPOS_current_distance = last_reading + ((last_reading - previous_reading) / (last_time - previous_time)) * (millis() - last_time); 
+    }
+    else{
+      PIDPOS_current_distance = PIDPOS_last_measured_distance;
+    }
+    
+    PIDPOS_data_ready = 0;
+  }
+  else{
+    PIDPOS_current_distance = distanceSensor1.getDistance();
+    PIDPOS_last_measured_distance = PIDPOS_current_distance;
+    distanceSensor1.clearInterrupt();
+    PIDPOS_data_ready = 1;
+    
+    previous_reading = last_reading;
+    last_reading = PIDPOS_last_measured_distance;
+    previous_time = last_time;
+    last_time = PIDPOS_current_time;
+    if(first_time){
+      first_time = false;
+      second_time = true;
+    }
+    if(second_time){
+      second_time = false;
+    }
+  }
+```
+
+With this test complete, I concluded my position control implementation. While I would've liked to implement integral and derivative terms to my controller, I encountered numerous bugs during this lab that slowed my development abilities. I am looking forward to Lab 6 and will attempt to implement a more sophisticated controller for that lab.
+
+Acknowledgments
+======
+I would like to thank all of the TAs and Professor Helbling for their assistance during this lab. From mysterious software bugs, to late night hardware malfunctions, I encountered a lot of roadblocks during this lab and would not have been able to complete it without their help. I also consulted Stephan Wagner's Lab 5 webpage to assist with my understanding of PID controllers.
