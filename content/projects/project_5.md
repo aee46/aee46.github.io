@@ -121,7 +121,7 @@ With these tests and debugging steps out of the way, it was time to begin design
 
 To begin, I implemented a controller that only used the proportional term, which is the measured error multiplied by a specific gain (Kp). One must be careful when setting the desired gain for the proportional term, as large gains can cause oscillations in the controller's response, and could potentially create an unstable system. A proportional gain will act directly upon the measured output, but by neglecting the Integral and Derivative terms, this controller will likely have a sizeable steady state error.
 
-With a desired setpoint of 1 ft (304 mm), I used a controller with a gain of KP = 0.02. This controller was able to successfully control the robot's location to the setpoint. However, the robot did overshoot the setpoint by a small distance. Additionally with this test, I noticed that my robot moves backwards much quicker than it moves forward, so I added some scaling constants to my motor control functions.
+With a desired setpoint of 1 ft (304 mm), I used a controller with a gain of KP = 0.02. This controller was able to successfully control the robot's location to the setpoint. However, the robot did overshoot the setpoint by a small distance. I ran multiple tests and ultimately determined that a KP constant of 0.02 worked best for my robot. Larger values caused the robot to overshoot the setpoint and crash into the wall.
 
 Shown below is a video of this test. The robot ends at a position of roughly 1 foot (1 floor tile) from the wall. Additionally, I recorded the output of the controller, the TOF sensor data, and the motor speeds for this test and plotted this data below.
 <br>
