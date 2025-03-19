@@ -1,0 +1,108 @@
+<!doctype html><html class="dark light" lang=en><head><meta charset=UTF-8><meta content="IE=edge" http-equiv=X-UA-Compatible><meta content="width=device-width,initial-scale=1.0" name=viewport><meta content=https://aee46.github.io name=base><title>
+         Lab 2
+        
+    </title><meta content="Lab 2" property=og:title><meta content="IMU Sensor - Accelerometer and Gyroscope" property=og:description><meta content="IMU Sensor - Accelerometer and Gyroscope" name=description><link href=/icon/favicon.png rel=icon type=image/png><link href=https://aee46.github.io/fonts.css rel=stylesheet><script src=https://aee46.github.io/js/codeblock.js></script><script src=https://aee46.github.io/js/toc.js></script><script src=https://aee46.github.io/js/note.js></script><script>MathJax = {
+              tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']]
+              }
+            };</script><script async id=MathJax-script src=https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js></script><link title="ECE 4160" href=https://aee46.github.io/atom.xml rel=alternate type=application/atom+xml><link href=https://aee46.github.io/theme/light.css rel=stylesheet><link href=https://aee46.github.io/theme/dark.css id=darkModeStyle rel=stylesheet><script src=https://aee46.github.io/js/themetoggle.js></script><script>setTheme(getSavedTheme());</script><link href=https://aee46.github.io/main.css media=screen rel=stylesheet><script src=https://aee46.github.io/js/mermaid.js></script><body><div class=content><header><div class=main><a href=https://aee46.github.io>ECE 4160</a></div><nav><a href=https://aee46.github.io/projects style=margin-left:.25em>/labs</a><a onclick="toggleTheme(); event.preventDefault();" href=# id=dark-mode-toggle> <img alt=Light id=sun-icon src=https://aee46.github.io/feather/sun.svg style=filter:invert()> <img alt=Dark id=moon-icon src=https://aee46.github.io/feather/moon.svg> </a><script>updateItemToggleTheme()</script></nav></header><main><article><div class=title><div class=page-header>Lab 2<span class=primary-color style=font-size:1.6em>.</span></div><div class=meta></div></div><div class=toc-container><h1 class=toc-title>Table of Contents</h1><ul class=toc-list><li><a href=https://aee46.github.io/projects/project-2/#setup>Setup</a> <ul><li><a href=https://aee46.github.io/projects/project-2/#accelerometer-test>Accelerometer Test</a><li><a href=https://aee46.github.io/projects/project-2/#gyroscope-test>Gyroscope Test</a><li><a href=https://aee46.github.io/projects/project-2/#blue-led-indicator>Blue LED Indicator</a></ul><li><a href=https://aee46.github.io/projects/project-2/#accelerometer>Accelerometer</a><li><a href=https://aee46.github.io/projects/project-2/#gyroscope>Gyroscope</a><li><a href=https://aee46.github.io/projects/project-2/#sampling-data>Sampling Data</a><li><a href=https://aee46.github.io/projects/project-2/#robot-stunt>Robot Stunt!</a><li><a href=https://aee46.github.io/projects/project-2/#acknowledgement>Acknowledgement</a></ul></div><section class=body><h1 id=setup>Setup</h1><p>This lab focuses on the IMU sensor that will be incorporated into my robot. The IMU contains three sensors - an accelerometer, a gyroscope, and a magnetometer.<p>To begin, I used a QWIIC cable to connect the IMU to the Artemis as seen below: <br> <img alt=Connection height=300 src=/projects/Lab2Connect.jpg width=400><p>Now that I had the IMU connected to the Artemis, I had to check which value to assign to the AD0_VAL macro. Since the ADR jumper on the IMU board is open, I assigned a value of 1 to AD0_VAL, as instructed by the comments provided in the Arduino example code. <br> <img alt=Jumper height=300 src=/projects/Lab2Jumper.jpg width=400><p>Next, I ran the example IMU code in order to test that my sensor was properly recording data. As seen in the video below, when the IMU is accelerated lineraly, the corresponding accelerometer values printed to the Serial Monitor will change. Similarly, when the IMU is rotated, the corresponding gyroscope values will change.<h2 id=accelerometer-test>Accelerometer Test</h2><p>In this video, the IMU is linerally accelerated in the X(Pink), Y(Blue), and Z(Yellow) direction. When the board is accelerated in a specific direction, you can see the corresponding plotted curve react to the motion. <br> <a href="https://www.youtube.com/watch?v=3JssRz2U_B8" title=AccelTest><img alt=Temperature height=300 src=/projects/acceltest.PNG width=400></a><h2 id=gyroscope-test>Gyroscope Test</h2><p>Next, I tested the gyroscope using the example code. As seen in the video below, when the IMU is rotated, the gyroscope data values (recorded in degrees per second) are output to the serial monitor. When the IMU is stationary, these values float around zero (with some flucuation due to noise). When the IMU is rotated, these values increase significantly, indicating that the sensor is abel to accurately record a change in rotation. <br> <a href="https://www.youtube.com/watch?v=vhLtQpP8zDs" title=GyroTest><img alt=Temperature height=300 src=/projects/gyrotest.PNG width=400></a><h2 id=blue-led-indicator>Blue LED Indicator</h2><p>The last part of my setup involved blinking the Artemis' onboard LED after the IMU sensor had been properly initialized. This helps with debugging and allows the user to determine if the sensor is setup correctly. This was accomplished by adding a few lines of code to the setup() function in my Arduino program.<pre class=language-Arduino data-lang=Arduino style=color:#61676c;background-color:#fafafa><code class=language-Arduino data-lang=Arduino><span>  pinMode(LED_BUILTIN, OUTPUT);
+</span><span>  for(int i = 0; i < 3; i++){
+</span><span>    digitalWrite(LED_BUILTIN, HIGH);
+</span><span>    delay(500);
+</span><span>    digitalWrite(LED_BUILTIN, LOW);
+</span><span>    delay(500);
+</span><span>  }
+</span></code></pre><h1 id=accelerometer>Accelerometer</h1><p>To begin working with the accelerometer, I implemented two functions that converted the raw acceleration data into roll and pitch quantities. I used the C math library's atan2() function to compute these values correctly. I also implemented two point calibration within these functions. While the accelerometer is relatively accurate, there was some error in its recordings prior to calibration. For example, when holding the IMU board directly against a wall, the readings were slightly off from the expected value of 90 degrees. For this reason, I implemented calibration.<p>Seen below is the output of the accelerometer's roll and pitch recordings prior to implementing calibration:</p><br> 90 Degrees Roll <img alt=Connection height=600 src=/projects/roll90.jpg width=1200><br> -90 Degrees Roll <img alt=Connection height=600 src=/projects/roll-90.jpg width=1200><br> 90 Degrees Pitch <img alt=Connection height=600 src=/projects/pitch90.jpg width=1200><br> -90 Degrees Pitch <img alt=Connection height=600 src=/projects/pitch-90.jpg width=1200><pre class=language-Arduino data-lang=Arduino style=color:#61676c;background-color:#fafafa><code class=language-Arduino data-lang=Arduino><span>float correctedPitchDeg(ICM_20948_I2C* IMU){
+</span><span>  float refLow = -90.0;
+</span><span>  float refHigh = 90.0;
+</span><span>  float rawLow = -88.54;
+</span><span>  float rawHigh = 88.77;
+</span><span>  float refRange = refHigh - refLow;
+</span><span>  float rawRange = rawHigh - rawLow;
+</span><span>  float measure = atan2(IMU->accX(), IMU->accZ()) * (180 / M_PI);
+</span><span>  float correct = (((measure - rawLow) * refRange) / rawRange ) + refLow;
+</span><span>  return correct;
+</span><span>}
+</span><span>
+</span><span>float correctedRollDeg(ICM_20948_I2C* IMU){
+</span><span>  float refLow = -90.0;
+</span><span>  float refHigh = 90.0;
+</span><span>  float rawLow = -90.19;
+</span><span>  float rawHigh = 87.96;
+</span><span>  float refRange = refHigh - refLow;
+</span><span>  float rawRange = rawHigh - rawLow;
+</span><span>  float measure = atan2(IMU->accY(), IMU->accZ()) * (180 / M_PI);
+</span><span>  float correct = (((measure - rawLow) * refRange) / rawRange ) + refLow;
+</span><span>  return correct;
+</span><span>}
+</span></code></pre><p>While this calibration scheme helped improve the accuracy of the accelerometer, the recorded data was still quite noisy. To reduce the sensor's noise, I began by analyzing the frequency spectrum of the sensor's roll and pitch data. I collected four sets of data: stationary and moving data for both the roll and pitch measurements. When taking measurements, I determined that I could record 1587 datapoints in 5.098 seconds, resulting in a sample rate of 311 samples per second.</p><br><img alt=Connection height=300 src=/projects/rollstationary.PNG width=400><img alt=Connection height=300 src=/projects/rollstationaryfft.PNG width=400><br><img alt=Connection height=300 src=/projects/rollmoving.PNG width=400><img alt=Connection height=300 src=/projects/rollmovingfft.PNG width=400><br><img alt=Connection height=300 src=/projects/pitchstationary.PNG width=400><img alt=Connection height=300 src=/projects/pitchstationaryfft.PNG width=400><br><img alt=Connection height=300 src=/projects/pitchmoving.PNG width=400><img alt=Connection height=300 src=/projects/pitchmovingfftnew.png width=400><p>By analyzing each plot, it is clear that most of the significant frequency content is contained below 5 Hz. With the stationary recordings, nearly all of the frequency content is at 0 Hz. With the moving recordings, higher frequencies are detected at significant amplitudes, but this is likely due to the sensor's angle reading switching rapidly between -180 and 180 degrees, as seen in the Moving Pitch graph. With this analysis complete, I implemented a low-pass filter with a cutoff frequency of 2 Hz.<p>Using a sample rate of 311 samples per second and a cutoff frequency of 2 Hz, I calculated my filter's alpha value to be 0.0388. Seen in the graphs below, this filter drastically reduced the amount of noise present in the sensor's measurements.</p><br><img alt=Connection height=300 src=/projects/rollfilter.PNG width=400><img alt=Connection height=300 src=/projects/newpitchfilter.png width=400><h1 id=gyroscope>Gyroscope</h1><p>To begin testing my gyroscope, I implemented a bluetooth command that would correctly convert the raw gyroscope measurements into roll, pitch, and yaw, as seen below:<pre class=language-Arduino data-lang=Arduino style=color:#61676c;background-color:#fafafa><code class=language-Arduino data-lang=Arduino><span>int start_time = (int)millis();
+</span><span>int index = 1;
+</span><span>float lastTime = millis();
+</span><span>time_stamps[0] = millis();
+</span><span>gyro_roll[0] = 0;
+</span><span>gyro_pitch[0] = 0;
+</span><span>gyro_yaw[0] = 0;
+</span><span>// Record Time Data Rapidly
+</span><span>while((int)millis() < start_time + RECORD_TIME && index < TIME_ARRAY_SIZE){
+</span><span>  if (myICM.dataReady()){
+</span><span>    myICM.getAGMT(); // Collect data for RECORD_TIME ms
+</span><span>    time_stamps[index] = (int)millis();
+</span><span>    float dt = (millis() - lastTime) / 1000;
+</span><span>    lastTime = millis();
+</span><span>    gyro_roll[index] = gyro_roll[index - 1] + myICM.gyrX()*dt;
+</span><span>    gyro_pitch[index] = gyro_pitch[index - 1] + myICM.gyrY()*dt;
+</span><span>    gyro_yaw[index] = gyro_yaw[index - 1] + myICM.gyrZ()*dt;
+</span><span>    index++;
+</span><span>  }
+</span><span>}
+</span></code></pre><p>When testing my gyroscope in a stationary position, I noticed that there was a large amount of drift in the sensor's readings. When the sensor was moving, the readings proved to be more accurate. While the gyroscope is less noisy than the accelerometer, the accelerometer was not as susceptible to drift, so I needed to incorporate a filter that combined the data from each sensor.</p><br><img alt=Connection height=300 src=/projects/gyrosetup.jpg width=400><img alt=Connection height=300 src=/projects/gyrodrift.PNG width=400><br><img alt=Connection height=300 src=/projects/gyromoving.PNG width=400><br> To create my filter, I weighted the gyroscope data with a bias of 0.9, and the accelerometer data was weighted with a bias of 0.1. I chose these values because the gyroscope proved to be far more accurate and less noisy than the accelerometer, but needed data to counter the drift effect of the gyroscope. This filter was applied to the IMU's roll and pitch measurements. Since the accelerometer is not able to measure yaw, I did not apply this filter to the yaw measurement. <p>With this filter applied, I was able to record both roll and pitch measurements with high accuracy, low noise, and low drift. I conducted three tests - stationary, moving, and vibrational - and the results are shown below. When the IMU is stationary, it is resistant to noise and drift. When the IMU is moving, it is almost free of noise. When the IMU experiences vibrations, it is able to quickly return to recording accruate measurements.</p><br><img alt=Connection height=300 src=/projects/compfilter.PNG width=400><br><img alt=Connection height=300 src=/projects/compfiltermoving.PNG width=400><br><img alt=Connection height=300 src=/projects/compfiltervibration.PNG width=400><h1 id=sampling-data>Sampling Data</h1><p>Now that all of my tests were complete, it was time to speed up the rate at which I could record IMU data. I removed all calls to the delay() function and removed all print statements from my IMU measurement command. After recording data, I measured that I collected 1782 samples in 5.098 seconds. This corresponds to a sampling rate of roughly 349 samples per second. I recorded data in separate arrays in order to facilitate the transmission of data over Bluetooth. If I were to use one large array, it would be extremely difficult to parse and find specific pieces of data. Likewise, since an array can only hold one type of data, this would make organization even more difficult. For this reason, I chose to create seperate arrays for each measurement type. As of now, I have ten distinct arrays for holding raw or filtered accelerometer and gyroscope data. I stored my time data as integers, since precision to the nearest millisecond has proved sufficient so far. I have recorded all of my other data measurements as floats, since these values can and likely will hold noninteger values in reality. With 1782 data points per array being sampled in a time of roughly 5 seconds, and ten arrays being used, this results in 17820 data points in 5.098 seconds, or 3495 data points per second. If each data point is 4 bytes, this results in the Artemis' memory being filled at a rate of 13.98 kilobytes per second. As seen in most of the graphs in this report, the time scale spans just over 5 seconds, proving that my Artemis is capable of recording at least 5 seconds of data and transmitting it over Bluetooth. Attached below is my code for transmitting the complementary filter data via Bluetooth:<pre class=language-Arduino data-lang=Arduino style=color:#61676c;background-color:#fafafa><code class=language-Arduino data-lang=Arduino><span>case COMP_FILTER_IMU:{
+</span><span>    int start_time = (int)millis();
+</span><span>    int index = 0;
+</span><span>    float lastTime = millis();
+</span><span>    time_stamps[0] = millis();
+</span><span>    gyro_roll[0] = 0;
+</span><span>    gyro_pitch[0] = 0;
+</span><span>    // Record Time Data Rapidly
+</span><span>    while((int)millis() < start_time + RECORD_TIME && index < TIME_ARRAY_SIZE){
+</span><span>      if (myICM.dataReady()){
+</span><span>        myICM.getAGMT(); // Collect data for RECORD_TIME ms
+</span><span>        time_stamps[index] = (int)millis();
+</span><span>        float dt = (millis() - lastTime) / 1000;
+</span><span>        lastTime = millis();
+</span><span>        gyro_roll[index] = gyro_roll[index - 1] + myICM.gyrX()*dt;
+</span><span>        gyro_pitch[index] = gyro_pitch[index - 1] + myICM.gyrY()*dt;
+</span><span>        roll_stamps[index] = correctedRollDeg(&myICM);
+</span><span>        pitch_stamps[index] =  correctedPitchDeg(&myICM);
+</span><span>        index++;
+</span><span>      }
+</span><span>    }
+</span><span>    // Begin Filtering
+</span><span>    float alpha = 0.0388;
+</span><span>    roll_filter_stamps[0] = roll_stamps[0];
+</span><span>    pitch_filter_stamps[0] = pitch_stamps[0];
+</span><span>
+</span><span>    for(int i = 1; i < index; i++){
+</span><span>      roll_filter_stamps[i] = alpha*roll_stamps[i] + (1 - alpha)*roll_filter_stamps[i-1];
+</span><span>      roll_filter_stamps[i-1] = roll_filter_stamps[i];
+</span><span>      pitch_filter_stamps[i] = alpha*pitch_stamps[i] + (1 - alpha)*pitch_filter_stamps[i-1];
+</span><span>      pitch_filter_stamps[i-1] = pitch_filter_stamps[i];
+</span><span>      float dt = (millis() - lastTime) / 1000;
+</span><span>      lastTime = millis();
+</span><span>      comp_roll[i] = (comp_roll[i - 1] - gyro_roll[i]*dt)*0.9 + 0.1*roll_filter_stamps[i];
+</span><span>      comp_pitch[i] = (comp_pitch[i - 1] + gyro_pitch[i]*dt)*0.9 + 0.1*pitch_filter_stamps[i];
+</span><span>    }
+</span><span>    // Send Arrays of Data
+</span><span>    for(int i = 0; i < index; i++){ // If array does not fill in alloted time, only send recorded values and not empty indicies
+</span><span>      tx_estring_value.clear();
+</span><span>      tx_estring_value.append("C");
+</span><span>      tx_estring_value.append("TIME:");
+</span><span>      tx_estring_value.append(time_stamps[i]);
+</span><span>      tx_estring_value.append("ROLL:");
+</span><span>      tx_estring_value.append(comp_roll[i]);
+</span><span>      tx_estring_value.append("PITCH:");
+</span><span>      tx_estring_value.append(comp_pitch[i]);
+</span><span>      tx_characteristic_string.writeValue(tx_estring_value.c_str());
+</span><span>    }
+</span><span>    break;
+</span><span>}
+</span></code></pre><h1 id=robot-stunt>Robot Stunt!</h1><p>To finish off this lab, I experimented with driving the robot car with the remote control. I noticed that the robot moves very fast and is very susceptible to flipping over if it accelerates too quickly. The robot is also able to turn very quickly, allowing the user to perform quick spins and drifting. Below is a video of me performing a few basic stunts, specificially a flip and a quick spin:</p><br><a href="https://www.youtube.com/shorts/mmC4DIsW21s?feature=share" title=Stunt><img alt=Stunt height=300 src=/projects/stuntlab2.PNG width=400></a><h1 id=acknowledgement>Acknowledgement</h1><p>I consulted RealPython.com to assist with creating my FFT plots. I referenced Daria Kot's webpage to assist with debugging my complementary filter. I consulted Adafruit.com to learn about implementing two-point calibration.</section></article></main></div>
