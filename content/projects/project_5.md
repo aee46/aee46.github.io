@@ -4,7 +4,7 @@ description = "PID Position Control"
 weight = 5
 
 [extra]
-remote_image = "projects/PIDHeaderImage.PNG"
+remote_image = "/projects/PIDHeaderImage.PNG"
 +++
 
 Prelab
