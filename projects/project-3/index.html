@@ -1,0 +1,108 @@
+<!doctype html><html class="dark light" lang=en><head><meta charset=UTF-8><meta content="IE=edge" http-equiv=X-UA-Compatible><meta content="width=device-width,initial-scale=1.0" name=viewport><meta content=https://aee46.github.io name=base><title>
+         Lab 3
+        
+    </title><meta content="Lab 3" property=og:title><meta content="Time of Flight Sensors" property=og:description><meta content="Time of Flight Sensors" name=description><link href=/icon/favicon.png rel=icon type=image/png><link href=https://aee46.github.io/fonts.css rel=stylesheet><script src=https://aee46.github.io/js/codeblock.js></script><script src=https://aee46.github.io/js/toc.js></script><script src=https://aee46.github.io/js/note.js></script><script>MathJax = {
+              tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']]
+              }
+            };</script><script async id=MathJax-script src=https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js></script><link title="ECE 4160" href=https://aee46.github.io/atom.xml rel=alternate type=application/atom+xml><link href=https://aee46.github.io/theme/light.css rel=stylesheet><link href=https://aee46.github.io/theme/dark.css id=darkModeStyle rel=stylesheet><script src=https://aee46.github.io/js/themetoggle.js></script><script>setTheme(getSavedTheme());</script><link href=https://aee46.github.io/main.css media=screen rel=stylesheet><script src=https://aee46.github.io/js/mermaid.js></script><body><div class=content><header><div class=main><a href=https://aee46.github.io>ECE 4160</a></div><nav><a href=https://aee46.github.io/projects style=margin-left:.25em>/labs</a><a onclick="toggleTheme(); event.preventDefault();" href=# id=dark-mode-toggle> <img alt=Light id=sun-icon src=https://aee46.github.io/feather/sun.svg style=filter:invert()> <img alt=Dark id=moon-icon src=https://aee46.github.io/feather/moon.svg> </a><script>updateItemToggleTheme()</script></nav></header><main><article><div class=title><div class=page-header>Lab 3<span class=primary-color style=font-size:1.6em>.</span></div><div class=meta></div></div><div class=toc-container><h1 class=toc-title>Table of Contents</h1><ul class=toc-list><li><a href=https://aee46.github.io/projects/project-3/#hardware-setup>Hardware Setup</a><li><a href=https://aee46.github.io/projects/project-3/#prelab>Prelab</a><li><a href=https://aee46.github.io/projects/project-3/#tof-sensor-testing-and-analysis>TOF Sensor Testing and Analysis</a> <ul><li><a href=https://aee46.github.io/projects/project-3/#one-tof-sensor>One TOF Sensor</a><li><a href=https://aee46.github.io/projects/project-3/#interfacing-two-tof-sensors>Interfacing Two TOF Sensors</a><li><a href=https://aee46.github.io/projects/project-3/#fast-tof-code-execution>Fast TOF Code Execution</a><li><a href=https://aee46.github.io/projects/project-3/#bluetooth-connection>Bluetooth Connection</a></ul></ul></div><section class=body><h1 id=hardware-setup>Hardware Setup</h1><p>This lab began with some hardware changes that will be used to interface each of the robot's components in future labs. Specifically, I replaced with pre-existing connector of one of my 650 mAh batteries with a JST connector in order to connect to the Artemis board. This will allow the Artemis to run without needing to be connected to my laptop. Additionally, I soldered QWIIC connectors to each TOF sensor board.<p>Seen below is one TOF sensor connected to the QWIIC multiport board: <br></p><center><img alt=sensors height=300 src=/projects/qwiic2.jpg width=400></center><p>With these hardware updates complete, I began my analysis of the Time of Flight (TOF) sensors that will be implemented on my robot.<h1 id=prelab>Prelab</h1><p>First, I examined the I2C address of the TOF sensor. According to its datasheet, the sensor's default address is 0x52. However, the sample Arduino program detected the sensor's address at 0x29. This it to be expected. I2C addresses consist of 7 bits followed by a read/write bit. When the Arduino program runs, it cycles through all possible addresses and attempts to write to each address. When the program successfully writes to an address, it records that address. 0x52 is equal to 0x29 left shifted by 1 bit. Following the TOF sensor's datasheet, if a user wants to write to the sensor, the user should transmit to an address of 0x29 followed by a 0 (indicating a write operation), which is equal to 0x52. If a user wishes to read from the TOF sensor, they should transmit an address of 0x53, indicating that they are interacting with the device as address 0x29 and wants to perform a read operation (represented as a 1 in the R/W bit). <br></p><center><img alt=sensors height=300 src=/projects/i2c_scan.PNG width=600></center><p>The TOF sensors will acts as the "eyes" of my robot. These sensors will be able to detect objects, such as a wall, that are in front of them. Therefore, it makes sense to implement more than one sensor. If the robot only used one TOF sensor, it would only be able to "see" in one direction and would fail to detect objects in other directions. In an ideal setup, the robot would be able to view all directions continuously, but this would require additional power and memory which my robot does not have.<p>I chose to place one TOF sensor on the front of my robot and the other sensor on the right side of the robot. This placement will allow the robot to see in front of it and on its side. To detect a full 360 degrees of surroundings, the robot can rotate in place to scan its environment. Depending on the tasks of future labs, I may adjust my sensor placement.<p>This placement causes a few blindspots. Notably, the robot is capable of moving in both forward and backwards directions. If the robot moves in reverse, it will be unable to see where it is moving. Additionally, the robot is unable to see above itself. If the robot is performing a stunt, such as a backflip, it will have only have one sensor to rely on instead of two as it rotates. <br></p><center><img alt=sensors height=300 src=/projects/sensor_placement.jpg width=400></center><p>Shown below is a sketch of the wiring I used to connect each of my robot's sensors to the Artemis board. Red wires indicate Power (VDD), Black wires are Ground (GND), Blue wires are Serial Data (SDA), and Green wires are Serial Clock (SCLK). Although the physical connectors use yellow wires for the clock connection, yellow is difficult to see when drawn on a white background, hence why I used green to represent these wires. Each sensor is connected using QWIIC connectors to a multiport board which is then connected to the Artemis. <br></p><center><img alt=sensors height=300 src=/projects/wiring_diagram.jpg width=400></center><h1 id=tof-sensor-testing-and-analysis>TOF Sensor Testing and Analysis</h1><h2 id=one-tof-sensor>One TOF Sensor</h2><p>The specific TOF sensor used for this lab has three distance modes. Each mode performs best at different ranges. For example, the short distance mode performs best within a range of 136 centimeters. The long distance mode performs best up to a range of 360 centimeters but is more heavily impacted by ambient light. Since the robot needs to be able to react quickly to sudden changes in its environment, such as stopping just before crashing into a wall, I chose the short distance mode for both of my sensors. The short distance mode allows the Artemis to record distance measurements faster than other TOF sensor modes. Depending on future lab tasks, I may adjust each sensor's mode.<p>I started by testing the accuracy of the short distance range mode of my TOF sensor. To do this, I positioned the sensor at several distances from a wall in increments of three inches using a tape measure to record the actual distance. For each distance, I collected 100 sensor measurements and plotted the sensor's mean recorded distance. For each distance trial, I also recorded the sensor's mean ranging time. I repeated this test three times to check for repeatability and consistency with the sensor's measurements.<p>Plotted below is the mean value of the sensor's measured distance over three trials versus the actual distance between the sensor and a wall. The sensor is quite accurate over its maximum range, and even measures the distance fairly well when slightly outside of this range. For example, at 57 inches (144.78 cm), the error is small despite this distance being outside of the short mode range. However, once the sensor exceeds 60 inches (152.4 cm), the error becomes significant. <br></p><center><img alt=sensors height=300 src=/projects/one_tof_test.PNG width=400></center><p>The mean ranging time for each trial was between 49 and 51 milliseconds. The sensor's datasheet states that the minimum ranging time using short distance mode is 20 ms, so this mean time is quite good compared to the sensor's maximum performance.<p>Pictured below is a photograph of my test setup. I taped the TOF sensor to a textbook to act as a constant vertical surface. I used a tape measure to measure the distance between the sensor and the wall. <br></p><center><img alt=sensors height=300 src=/projects/tof_test_photo.jpg width=400></center><h2 id=interfacing-two-tof-sensors>Interfacing Two TOF Sensors</h2><p>Next, I interfaced both TOF sensors to work simultaneously. There are two methods to do this. One method requires constantly switching a sensor on and off, while the other simply changes the I2C address of the second sensor. I decided to go with the second option as I'd rather only have to run additional code during the sensor initialization rather than each time I want to measure a sensor's data.<p>It was not until Tuesday night that I realized I needed an additional wire for this (I should've read the lab handout more closely). Since I do not own a soldering iron, I had to get creative for this test. I plan to solder a permanent wire when I am in the physical lab space.<p>Luckily, I had a breadboard and some jumper wires at my apartment, so I was able to create a temporary setup to establish the necessary SHUTDOWN wire connection, as seen below: <br></p><center><img alt=sensors height=600 src=/projects/two_tof_setup.jpg width=600></center><p>Using the following initialization code, I was able to successfully change the I2C address of one of the TOF sensors, allowing for both sensors to measure distance data at the same time.<pre class=language-Arduino data-lang=Arduino style=color:#61676c;background-color:#fafafa><code class=language-Arduino data-lang=Arduino><span>#define SHUTDOWN_PIN 2
+</span><span>#define LOW 0
+</span><span>#define HIGH 1
+</span><span>
+</span><span>SFEVL53L1X distanceSensor1;
+</span><span>SFEVL53L1X distanceSensor2(Wire, SHUTDOWN_PIN);
+</span><span>
+</span><span>
+</span><span>void setup() {
+</span><span>  Wire.begin();
+</span><span>
+</span><span>  Serial.begin(9600);
+</span><span>  Serial.println("VL53L1X Qwiic Test");
+</span><span>
+</span><span>  pinMode(SHUTDOWN_PIN, HIGH);
+</span><span>  distanceSensor2.sensorOff();
+</span><span>
+</span><span>  distanceSensor1.setI2CAddress(0x56);
+</span><span>  pinMode(SHUTDOWN_PIN, LOW);
+</span><span>
+</span><span>  if (distanceSensor1.begin() != 0) //Begin returns 0 on a good init
+</span><span>  {
+</span><span>    Serial.println("Sensor 1 failed to begin. Please check wiring. Freezing...");
+</span><span>    while (1);
+</span><span>  }
+</span><span>
+</span><span>  if (distanceSensor2.begin() != 0) //Begin returns 0 on a good init
+</span><span>  {
+</span><span>    Serial.println("Sensor 2 failed to begin. Please check wiring. Freezing...");
+</span><span>    while (1);
+</span><span>  }
+</span><span>  Serial.println("Sensors online!");
+</span><span>  distanceSensor1.setDistanceModeShort();
+</span><span>  distanceSensor2.setDistanceModeShort();
+</span><span>}
+</span></code></pre><p>In the video below, I demonstrate that both sensors are able to record data simultaneously and respond to unique changes in their environment. <br> <a href="https://www.youtube.com/watch?v=P19FJj8DctU&feature=youtu.be" title=DualTOFTest><img alt="Dual TOF" height=300 src=/projects/two_tof_setup.jpg width=400></a><h2 id=fast-tof-code-execution>Fast TOF Code Execution</h2><p>Now that I had both TOF sensors working simultaneously, it was time to speed up the execution time of my code. Instead of waiting for each sensor's data to be ready before printing, I only recorded sensor data IF the sensor was ready. If the sensor was not ready, I simply skipped over the measurement recording code and continued executing my loop.<p>Using the following loop code, I was able to record sensor data only when it was ready, allowing the Artemis to continue operating instead of waiting for each sensor to be available.<pre class=language-Arduino data-lang=Arduino style=color:#61676c;background-color:#fafafa><code class=language-Arduino data-lang=Arduino><span>void loop(){
+</span><span>  float start_time = millis();
+</span><span>  distanceSensor1.startRanging(); 
+</span><span>  distanceSensor2.startRanging();
+</span><span>  
+</span><span>  if(distanceSensor1.checkForDataReady()){
+</span><span>    float distance1 = distanceSensor1.getDistance();
+</span><span>    distanceSensor1.clearInterrupt();
+</span><span>    distanceSensor1.stopRanging();
+</span><span>    Serial.print("Distance1(mm): ");
+</span><span>    Serial.println(distance1);
+</span><span>  }
+</span><span>  if(distanceSensor2.checkForDataReady()){
+</span><span>    float distance2 = distanceSensor2.getDistance(); 
+</span><span>    distanceSensor2.clearInterrupt();
+</span><span>    distanceSensor2.stopRanging();
+</span><span>    Serial.print("Distance2(mm): ");
+</span><span>    Serial.println(distance2);
+</span><span>  }
+</span><span>  float end_time = millis();
+</span><span>  Serial.print("Clock Period: ");
+</span><span>  Serial.println(end_time - start_time);
+</span><span>}
+</span></code></pre><p>As seen below, the sensor data is only available once every 10 loop cycles. By allowing the Artemis to continue operating when sensor data is unavailable, the robot can perform other tasks while waiting for new sensor data. It is clear that the Artemis can operate much faster than the TOF sensors can record data. It takes each sensor roughly 50 ms to record data which is quite slow compared to other operations occuring on the Artemis.<pre class="language-Serial Output" data-lang="Serial Output" style=color:#61676c;background-color:#fafafa><code class="language-Serial Output" data-lang="Serial Output"><span>Distance1(mm): 215.00
+</span><span>Distance2(mm): 28.00
+</span><span>Clock Period: 53.00
+</span><span>Clock Period: 6.00
+</span><span>Clock Period: 6.00
+</span><span>Clock Period: 6.00
+</span><span>Clock Period: 6.00
+</span><span>Clock Period: 6.00
+</span><span>Clock Period: 7.00
+</span><span>Clock Period: 7.00
+</span><span>Clock Period: 7.00
+</span><span>Clock Period: 6.00
+</span><span>Clock Period: 6.00
+</span><span>Distance1(mm): 135.00
+</span><span>Distance2(mm): 28.00
+</span></code></pre><h2 id=bluetooth-connection>Bluetooth Connection</h2><p>Lastly, I implemented a function that allowed for TOF sensor data to be recorded via Bluetooth. This function also records IMU roll and pitch data (see Lab 2). Initially, I had this function use the complementary filter IMU recording routine, but due to the slow recording time of the TOF sensors, this filter (mainly due to the gyroscope) was quite inaccurate. Instead, I used calibrated data recorded by the IMU's accelerometer for this measurement. For future labs, if recording IMU data via the complementary filter is needed, it should be done independently from the TOF sensors.<pre class=language-Arduino data-lang=Arduino style=color:#61676c;background-color:#fafafa><code class=language-Arduino data-lang=Arduino><span>int start_time = (int)millis();
+</span><span>int index = 0;
+</span><span>float lastTime = millis();
+</span><span>time_stamps[0] = millis();
+</span><span>gyro_roll[0] = 0;
+</span><span>gyro_pitch[0] = 0;
+</span><span>// Record Time Data Rapidly
+</span><span>while((int)millis() < start_time + RECORD_TIME && index < TIME_ARRAY_SIZE){
+</span><span>  while(!myICM.dataReady());
+</span><span>  myICM.getAGMT(); // Collect data for RECORD_TIME ms
+</span><span>  time_stamps[index] = (int)millis();
+</span><span>  roll_stamps[index] = correctedRollDeg(&myICM);
+</span><span>  pitch_stamps[index] =  correctedPitchDeg(&myICM);
+</span><span>  
+</span><span>  distanceSensor1.startRanging();
+</span><span>  while (!distanceSensor1.checkForDataReady());
+</span><span>  tof1_stamps[index] = distanceSensor1.getDistance();
+</span><span>  distanceSensor1.clearInterrupt();
+</span><span>  distanceSensor1.stopRanging();  
+</span><span>
+</span><span>  distanceSensor2.startRanging();
+</span><span>  while (!distanceSensor2.checkForDataReady());
+</span><span>  tof2_stamps[index] = distanceSensor2.getDistance();
+</span><span>  distanceSensor2.clearInterrupt();
+</span><span>  distanceSensor2.stopRanging();       
+</span><span>  index++;
+</span><span>}
+</span></code></pre><p>After recording data for 5 seconds, I plotted the following graphs. As explained above, each TOF sensor has a recording time of roughly 50 ms. With two sensors, this time doubles to 100 ms. Thus, data is only recorded every 100 ms, even though each TOF sensor can record at twice this speed, and the IMU can record much faster than this.</p><br><center><img alt=sensors height=600 src=/projects/imu_bt.PNG width=900><img alt=sensors height=600 src=/projects/tof_bt.PNG width=900></center><p>This lab focused on implementing "vision" onto my robot. By using TOF sensors, my robot is now capable of measuring distances between various objects and itself. I am excited to use both the TOF and IMU sensors to execute more complex robotics tasks in future labs.<p>Acknowledgement: I watched several YouTube videos and browsed robot-electronics.co.uk to better understand I2C addressing. I referenced Wenyi Fu's Lab 3 webpage to better understand how to change the TOF sensor's I2C address.</section></article></main></div>
