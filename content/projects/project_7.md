@@ -1,43 +1,20 @@
 +++
 title = "Lab 7"
-description = "Template for Lab Description"
+description = "Kalman Filter"
 weight = 7
 
 [extra]
-remote_image = "https://images.unsplash.com/photo-1462556791646-c201b8241a94?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1465&q=80"
+remote_image = "/projects/KALMANHEADER.jpg"
 +++
 
-This is a header template! Headers will automatically be updated in the table of contents!
+Overview
 ======
+This lab focuses on implementing a Kalman Filter to predict distance and speed measurements on the robot. This will be particularly useful in speeding up the the control loop from Lab 5. Instead of using linear extrapolation to predict distance measurements when the TOF sensor isn't ready, we can use a Kalman Filter to do this task more accurately.
 
-This is a paragraph template! Lots of words can go here!
+Estimating Drag and Momentum
+======
+The first step in designing and implementing a Kalman Filter involves building the state space model for the robot. This requires estimating drag and the momentum of the robot as it moves towards a wall. This can be done by driving the motors forward with a step response, as seen in the graphs below. In Lab 5, I had limited my control loop to a maximum speed of 50%, corresponding to a PWM value of 127.5. 
 
-1. This is the first item in a list
-2. This is the second item in a list!
-3. This is item number 3!
+NOTE: I did not complete this lab. I ran into issues with my TOF sensors breaking and I also was sick with the flu and did not have the energy to complete this lab (since I had also already used my two slip weeks). 
 
 
-[This is a link to google!](https://google.com)
-
-Image Template: 
-![alt text](https://github.com/adam-p/markdown-here/raw/master/src/common/images/icon48.png "Logo Title Text 1")
-
-Code Template
-```javascript
-var s = "JavaScript syntax highlighting";
-alert(s);
-```
- 
-```python
-s = "Python syntax highlighting"
-print s
-```
- 
-```
-No language indicated, so no syntax highlighting. 
-But let's throw in a <b>tag</b>.
-```
-
-Video Template - May need to use manual thumbnail
-
-[![Blinky](https://img.youtube.com/shorts/25bWmITx2MA/0.jpg)](https://www.youtube.com/shorts/25bWmITx2MA)
