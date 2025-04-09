@@ -4,7 +4,7 @@ description = "Robot Stunts"
 weight = 8
 
 [extra]
-remote_image = "projects/stunt.jpg"
+remote_image = "/projects/stunt.jpg"
 +++
 
 Robot Stunts - Flip
