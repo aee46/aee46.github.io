@@ -156,4 +156,4 @@ Obviously, the measured map is not perfect. This is due to a few reasons. First,
 
 Acknowledgements
 ======
-I worked with Rachel Arena, Tyler Wisniewski, and Kelvin Resch to create an obstacle setup on the second floor of Phillips Hall. I referenced Daria Kot's 2024 webpage to develop a better understanding of matrix transformations. I extensively referenced the Matplotlib documentation while writing code for each of the graphs present in this report.
+I worked with Rachel Arena, Tyler Wisniewski, and Kelvin Resch to create an obstacle setup on the second floor of Phillips Hall. I referenced Daria Kot's and Nila Narayan's webpages, as well as the lecture notes, to develop a better understanding of matrix transformations. I extensively referenced the Matplotlib documentation while writing code for each of the graphs present in this report.
