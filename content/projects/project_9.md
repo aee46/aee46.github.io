@@ -4,7 +4,7 @@ description = "Mapping"
 weight = 9
 
 [extra]
-remote_image = "/projects/lab9header.PNG"
+remote_image = "/projects/lab9header.png"
 +++
 
 Mapping
@@ -100,7 +100,7 @@ Shown below is an idealized map of our setup, along with a real life photo of ou
 <br>
 <center><img src="/projects/LAB9IDEALMAP.PNG" alt="sensors" width="500" height="400"></center>
 <br>
-<center><img src="/projects/lab9roomphoto.PNG" alt="sensors" width="500" height="400"></center>
+<center><img src="/projects/lab9roomphoto.png" alt="sensors" width="500" height="400"></center>
 
 I measured data for each blue point on the map except for the origin (0,0) for a total of 5 locations. At each location, I completed two full rotations. I recorded data from two front-facing TOF sensors. I also started my robot facing in the same direction during each test. At each orientation, I collected 5 data points from each sensor.
 
