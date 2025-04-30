@@ -1,0 +1,33 @@
+{
+	"folders": [
+		{
+			"name": "content",
+			"path": "."
+		},
+		{
+			"name": "public",
+			"path": "../public"
+		},
+		{
+			"name": "sass",
+			"path": "../sass"
+		},
+		{
+			"name": "static",
+			"path": "../static"
+		},
+		{
+			"name": "templates",
+			"path": "../templates"
+		},
+		{
+			"name": "aee46.github.io",
+			"path": "../../aee46.github.io"
+		},
+		{
+			"name": "themes",
+			"path": "../themes"
+		}
+	],
+	"settings": {}
+}
