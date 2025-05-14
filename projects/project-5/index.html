@@ -1,0 +1,145 @@
+<!doctype html><html class="dark light" lang=en><head><meta charset=UTF-8><meta content="IE=edge" http-equiv=X-UA-Compatible><meta content="width=device-width,initial-scale=1.0" name=viewport><meta content=https://aee46.github.io name=base><title>
+         Lab 5
+        
+    </title><meta content="Lab 5" property=og:title><meta content="PID Position Control" property=og:description><meta content="PID Position Control" name=description><link href=/icon/favicon.png rel=icon type=image/png><link href=https://aee46.github.io/fonts.css rel=stylesheet><script src=https://aee46.github.io/js/codeblock.js></script><script src=https://aee46.github.io/js/toc.js></script><script src=https://aee46.github.io/js/note.js></script><script>MathJax = {
+              tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']]
+              }
+            };</script><script async id=MathJax-script src=https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js></script><link title="ECE 4160" href=https://aee46.github.io/atom.xml rel=alternate type=application/atom+xml><link href=https://aee46.github.io/theme/light.css rel=stylesheet><link href=https://aee46.github.io/theme/dark.css id=darkModeStyle rel=stylesheet><script src=https://aee46.github.io/js/themetoggle.js></script><script>setTheme(getSavedTheme());</script><link href=https://aee46.github.io/main.css media=screen rel=stylesheet><script src=https://aee46.github.io/js/mermaid.js></script><body><div class=content><header><div class=main><a href=https://aee46.github.io>ECE 4160</a></div><nav><a href=https://aee46.github.io/projects style=margin-left:.25em>/labs</a><a onclick="toggleTheme(); event.preventDefault();" href=# id=dark-mode-toggle> <img alt=Light id=sun-icon src=https://aee46.github.io/feather/sun.svg style=filter:invert()> <img alt=Dark id=moon-icon src=https://aee46.github.io/feather/moon.svg> </a><script>updateItemToggleTheme()</script></nav></header><main><article><div class=title><div class=page-header>Lab 5<span class=primary-color style=font-size:1.6em>.</span></div><div class=meta></div></div><div class=toc-container><h1 class=toc-title>Table of Contents</h1><ul class=toc-list><li><a href=https://aee46.github.io/projects/project-5/#prelab>Prelab</a><li><a href=https://aee46.github.io/projects/project-5/#time-of-flight-sampling-speed>Time of Flight Sampling Speed</a><li><a href=https://aee46.github.io/projects/project-5/#pid-control-p-controller>PID Control - P Controller</a><li><a href=https://aee46.github.io/projects/project-5/#distance-extrapolation>Distance Extrapolation</a><li><a href=https://aee46.github.io/projects/project-5/#acknowledgments>Acknowledgments</a></ul></div><section class=body><h1 id=prelab>Prelab</h1><p>To begin, I implemented several bluetooth commands that would assist with debugging and recording data from the robot. This involved creating arrays on the Artemis that store different data readings (TOF distance, motor speed, etc.) with respect to time.<p>Each iteration of my PID control loop, I call the function record_data() to store current sensor readings into their corresponding arrays.<pre class=language-Arduino data-lang=Arduino style=color:#61676c;background-color:#fafafa><code class=language-Arduino data-lang=Arduino><span>void record_data(
+</span><span>  int C_TIME,
+</span><span>  float C_DISTANCE,
+</span><span>  float C_L_SPEED,
+</span><span>  float C_R_SPEED,
+</span><span>  float C_KP,
+</span><span>  float C_KI,
+</span><span>  float C_KD
+</span><span>){
+</span><span>  if(INDEX < 2000){
+</span><span>    time_stamps[INDEX] = C_TIME;
+</span><span>    tof1_stamps[INDEX] = C_DISTANCE;
+</span><span>    left_motor_speeds[INDEX] = C_L_SPEED;
+</span><span>    right_motor_speeds[INDEX] = C_R_SPEED;
+</span><span>    KP_ARRAY[INDEX] = C_KP;
+</span><span>    KI_ARRAY[INDEX] = C_KI;
+</span><span>    KD_ARRAY[INDEX] = C_KD;
+</span><span>    INDEX += 1;
+</span><span>  }
+</span><span>}
+</span></code></pre><p>When the PID control loop has finished executing after ten seconds, I can send this data to my laptop using the following bluetooth command:<pre class=language-Arduino data-lang=Arduino style=color:#61676c;background-color:#fafafa><code class=language-Arduino data-lang=Arduino><span>case SEND_PID_DATA:{
+</span><span>    Serial.println("Sending Data!");
+</span><span>    for(int i = 0; i < TIME_ARRAY_SIZE; i++){
+</span><span>        tx_estring_value.clear();
+</span><span>        tx_estring_value.append(time_stamps[i]);
+</span><span>        tx_estring_value.append("|");
+</span><span>        tx_estring_value.append(tof1_stamps[i]);
+</span><span>        tx_estring_value.append("|");
+</span><span>        tx_estring_value.append(left_motor_speeds[i]);
+</span><span>        tx_estring_value.append("|");
+</span><span>        tx_estring_value.append(right_motor_speeds[i]);
+</span><span>        tx_estring_value.append("|");
+</span><span>        tx_estring_value.append(KP_ARRAY[i]);
+</span><span>        tx_estring_value.append("|");
+</span><span>        tx_estring_value.append(KI_ARRAY[i]);
+</span><span>        tx_estring_value.append("|");
+</span><span>        tx_estring_value.append(KD_ARRAY[i]);
+</span><span>        tx_estring_value.append("|");
+</span><span>        tx_estring_value.append("A");                               
+</span><span>        tx_characteristic_string.writeValue(tx_estring_value.c_str());
+</span><span>    }
+</span><span>    INDEX = 0;
+</span><span>    break;
+</span><span>}
+</span></code></pre><p>On the Python side, my notification handler processes the received string and divides the data into discrete lists.<pre class=language-Python data-lang=Python style=color:#61676c;background-color:#fafafa><code class=language-Python data-lang=Python><span style=color:#fa6e32>def </span><span style=color:#f29718>notification_handler</span><span>(</span><span style=color:#ff8f40>uuid</span><span style=color:#61676ccc>, </span><span style=color:#ff8f40>value</span><span>):
+</span><span>    </span><span style=color:#fa6e32>global </span><span>i
+</span><span>    raw_value </span><span style=color:#ed9366>= </span><span>ble</span><span style=color:#ed9366>.</span><span style=color:#f29718>bytearray_to_string</span><span>(value)
+</span><span>    </span><span style=color:#fa6e32>if </span><span>raw_value[</span><span style=color:#ed9366>-</span><span style=color:#ff8f40>1</span><span>] </span><span style=color:#ed9366>== </span><span style=color:#86b300>'A'</span><span>:
+</span><span>        PID_DATA </span><span style=color:#ed9366>= </span><span>raw_value</span><span style=color:#ed9366>.</span><span style=color:#f29718>split</span><span>(</span><span style=color:#86b300>"|"</span><span>)
+</span><span>        time_list</span><span style=color:#ed9366>.</span><span style=color:#f29718>append</span><span>(</span><span style=color:#55b4d4;font-style:italic>float</span><span>(PID_DATA[</span><span style=color:#ff8f40>0</span><span>]))
+</span><span>        tof1_list</span><span style=color:#ed9366>.</span><span style=color:#f29718>append</span><span>(</span><span style=color:#55b4d4;font-style:italic>float</span><span>(PID_DATA[</span><span style=color:#ff8f40>1</span><span>]))
+</span><span>        left_motor_list</span><span style=color:#ed9366>.</span><span style=color:#f29718>append</span><span>(</span><span style=color:#55b4d4;font-style:italic>float</span><span>(PID_DATA[</span><span style=color:#ff8f40>2</span><span>]))
+</span><span>        right_motor_list</span><span style=color:#ed9366>.</span><span style=color:#f29718>append</span><span>(</span><span style=color:#55b4d4;font-style:italic>float</span><span>(PID_DATA[</span><span style=color:#ff8f40>3</span><span>]))
+</span><span>        kp_list</span><span style=color:#ed9366>.</span><span style=color:#f29718>append</span><span>(</span><span style=color:#55b4d4;font-style:italic>float</span><span>(PID_DATA[</span><span style=color:#ff8f40>4</span><span>]))
+</span><span>        ki_list</span><span style=color:#ed9366>.</span><span style=color:#f29718>append</span><span>(</span><span style=color:#55b4d4;font-style:italic>float</span><span>(PID_DATA[</span><span style=color:#ff8f40>5</span><span>]))
+</span><span>        kd_list</span><span style=color:#ed9366>.</span><span style=color:#f29718>append</span><span>(</span><span style=color:#55b4d4;font-style:italic>float</span><span>(PID_DATA[</span><span style=color:#ff8f40>6</span><span>]))
+</span></code></pre><p>Additionally, I implemented several bluetooth commands to remotely control the PID constants, motor speed, and setpoint distance. One example, which sets the PID constants, is shown below:<pre class=language-Arduino data-lang=Arduino style=color:#61676c;background-color:#fafafa><code class=language-Arduino data-lang=Arduino><span>case SET_PID_CONSTANTS:{
+</span><span>    success = robot_cmd.get_next_value(val_a);
+</span><span>    if (!success)
+</span><span>        return;
+</span><span>
+</span><span>    success = robot_cmd.get_next_value(val_b);
+</span><span>    if (!success)
+</span><span>        return;
+</span><span>
+</span><span>    success = robot_cmd.get_next_value(val_c);
+</span><span>    if (!success)
+</span><span>        return;
+</span><span>    PIDPOS_KP_CONSTANT = val_a;
+</span><span>    PIDPOS_KI_CONSTANT = val_b;
+</span><span>    PIDPOS_KD_CONSTANT = val_c;
+</span><span>}
+</span></code></pre><h1 id=time-of-flight-sampling-speed>Time of Flight Sampling Speed</h1><p>Additionally, I investigated the sampling speed of my time of flight (TOF) sensor prior to creating my PID loop. I also changed the operating mode of my sensor from SHORT to LONG so that I could accurately record further distances. While this resulted in a slower sampling speed, this was not very significant when compared to the performance gain of a larger measurement distance. I set the sensor's timing budget to 33 ms and the intermeasurement period to 33 seconds. To conduct this test, I implemented a bluetooth command that loops for five seconds. Each loop iteration, the process checks if TOF sensor data is available and records this status to an array. When analyzing this data, I produced the following graphs:</p><br><center><img alt=sensors height=400 src=/projects/lab5toffreqCORRECT.PNG width=600></center><p>Each stem indicates when data was ready from the sensor. Taking the mean time between each data point resulted in a value of 32.667 ms, or a frequency of 30.61 Hz.<h1 id=pid-control-p-controller>PID Control - P Controller</h1><p>With these tests and debugging steps out of the way, it was time to begin designing my PID controller. A PID Controlller is programmed with a value known as the setpoint. For this lab, this setpoint represents the distance between the front of the robot and a wall. Each time the PID control loop measures new data, it calculates the difference between the measured data and the setpoint. The controller then takes the value of this error, along with its integral and derivative, multiplies these values by their corresponding gains, and sums the three outputs. The controller sends this value to an acutator, such as the motors on the robot, to act in a direction that will work to reduce the measured error. <br></p><center><img alt=sensors height=400 src=/projects/pidmath.jpg width=600></center><p>To begin, I implemented a controller that only used the proportional term, which is the measured error multiplied by a specific gain (Kp). One must be careful when setting the desired gain for the proportional term, as large gains can cause oscillations in the controller's response, and could potentially create an unstable system. A proportional gain will act directly upon the measured output, but by neglecting the Integral and Derivative terms, this controller will likely have a sizeable steady state error.<p>With a desired setpoint of 1 ft (304 mm), I used a controller with a gain of KP = 0.02. This controller was able to successfully control the robot's location to the setpoint. However, the robot did overshoot the setpoint by a small distance. I ran multiple tests and ultimately determined that a KP constant of 0.02 worked best for my robot. Larger values caused the robot to overshoot the setpoint and crash into the wall.<p>Shown below is a video of this test. The robot ends at a position of roughly 1 foot (1 floor tile) from the wall. Additionally, I recorded the output of the controller, the TOF sensor data, and the motor speeds for this test and plotted this data below. <br></p><center><a href="https://youtube.com/shorts/afKAqhyIAq8?feature=share" title=Scope><img alt=Scope height=300 src=/projects/P_SUCCESS.PNG width=400></a></center><br><center><img alt=sensors height=300 src=/projects/PMOTOR_CORRECT.PNG width=400><img alt=sensors height=300 src=/projects/PTOF_CORRECT.PNG width=400><img alt=sensors height=300 src=/projects/PKP_CORRECT.PNG width=400></center><p>This test was done with distance extrapolation implemented on the distance sensor measurements. This procedure is explained in the following section. Additionally, I limited my motor speeds to integer values between 0 and 100, as I multiply the speed my 2.55 to produce a valid PWM write value (between 0 and 255).<p>My P control loop consisted of four stages, as seen below. First, the robot records new data (or uses old data if the sensor isn't ready). Next, it calculates the error between the measured data and the programmed setpoint. The controller uses this error to determine what speed to drive the motors at. Last, the controller logs all relevant data.<pre class=language-Arduino data-lang=Arduino style=color:#61676c;background-color:#fafafa><code class=language-Arduino data-lang=Arduino><span>void runPIDPositionControl(){
+</span><span>  // Record TOF Data
+</span><span>  PIDPOS_current_time = millis();
+</span><span>  bool PIDPOS_data_ready = false;
+</span><span>
+</span><span>  if(!distanceSensor1.checkForDataReady()){
+</span><span>    PIDPOS_current_distance = PIDPOS_last_measured_distance;
+</span><span>    PIDPOS_data_ready = false;
+</span><span>  }
+</span><span>  else{
+</span><span>    PIDPOS_current_distance = distanceSensor1.getDistance();
+</span><span>    PIDPOS_last_measured_distance = PIDPOS_current_distance;
+</span><span>    distanceSensor1.clearInterrupt();
+</span><span>    PIDPOS_data_ready = true;
+</span><span>  }
+</span><span>
+</span><span>  // Calculate PID Terms
+</span><span>  PIDPOS_error = PIDPOS_current_distance - PIDPOS_set_point;
+</span><span>  PIDPOS_KP_current_term = PIDPOS_KP_CONSTANT * PIDPOS_error;
+</span><span>  PIDPOS_Total = PIDPOS_KP_current_term;
+</span><span>
+</span><span>  // Set Motor Speed
+</span><span>  set_motor_speed = PIDPOS_speed_scaling_constant * PIDPOS_Total;
+</span><span>  if(set_motor_speed > 50){
+</span><span>    set_motor_speed = 50;
+</span><span>  }
+</span><span>  else if(set_motor_speed < -50){
+</span><span>    set_motor_speed = -50;
+</span><span>  }
+</span><span>  else if(set_motor_speed < MIN_MOTOR_SPEED && set_motor_speed > 0){
+</span><span>    set_motor_speed = MIN_MOTOR_SPEED;
+</span><span>  }
+</span><span>  driveMotors(set_motor_speed);
+</span><span>
+</span><span>  // Log PID Data
+</span><span>  record_data(PIDPOS_current_time, PIDPOS_current_distance, set_motor_speed, set_motor_speed, PIDPOS_KP_current_term, 0, 0);
+</span><span>}
+</span></code></pre><p>With this test, I also calculated the average time for one iteration of the control loop to execute. The mean time between loop cycles was 8.24 ms, corresponding to a loop frequency of 121.3 Hz, much faster than the TOF sampling time.<h1 id=distance-extrapolation>Distance Extrapolation</h1><p>Since the control loop is able to execute much faster than the TOF sensor can record new data, I implemented a simple linear extrapolation algorithm to estimate the robot's distance from the wall in between sensor measurements. This algorithm takes the two previously measured TOF sensor readings and calculates the slope between these two points. Using this slope and the elapsed time since the last sensor reading, the robot estimates its current distance from the wall. This allows the controller to behave more accurately while waiting for new sensor data.<p>For the above P control test, I recorded when TOF sensor data was ready or not, and plotted the measured and extrapolated distance values below. <br></p><center><img alt=sensors height=300 src=/projects/P_EXTRAPOLATE_FULL.PNG width=400><img alt=sensors height=300 src=/projects/P_EXTRAPOLATE_ZOOM.PNG width=400></center><p>To extrapolate data measurements, I implemented two flag variables to check if the TOF sensor had recorded two measurements yet. Since the extrapolation algorithm requires the previous two data points to compute the next expected value, the robot must wait until it has two sensor measurements recorded.<pre class=language-Arduino data-lang=Arduino style=color:#61676c;background-color:#fafafa><code class=language-Arduino data-lang=Arduino><span>if(!distanceSensor1.checkForDataReady()){
+</span><span>    if(first_time == false && second_time == false){
+</span><span>      PIDPOS_current_distance = last_reading + ((last_reading - previous_reading) / (last_time - previous_time)) * (millis() - last_time); 
+</span><span>    }
+</span><span>    else{
+</span><span>      PIDPOS_current_distance = PIDPOS_last_measured_distance;
+</span><span>    }
+</span><span>    
+</span><span>    PIDPOS_data_ready = 0;
+</span><span>  }
+</span><span>  else{
+</span><span>    PIDPOS_current_distance = distanceSensor1.getDistance();
+</span><span>    PIDPOS_last_measured_distance = PIDPOS_current_distance;
+</span><span>    distanceSensor1.clearInterrupt();
+</span><span>    PIDPOS_data_ready = 1;
+</span><span>    
+</span><span>    previous_reading = last_reading;
+</span><span>    last_reading = PIDPOS_last_measured_distance;
+</span><span>    previous_time = last_time;
+</span><span>    last_time = PIDPOS_current_time;
+</span><span>    if(first_time){
+</span><span>      first_time = false;
+</span><span>      second_time = true;
+</span><span>    }
+</span><span>    if(second_time){
+</span><span>      second_time = false;
+</span><span>    }
+</span><span>  }
+</span></code></pre><p>With this test complete, I concluded my position control implementation. While I would've liked to implement integral and derivative terms to my controller, I encountered numerous bugs during this lab that slowed my development abilities. I am looking forward to Lab 6 and will attempt to implement a more sophisticated controller for that lab.<h1 id=acknowledgments>Acknowledgments</h1><p>I would like to thank all of the TAs and Professor Helbling for their assistance during this lab. From mysterious software bugs, to late night hardware malfunctions, I encountered a lot of roadblocks during this lab and would not have been able to complete it without their help. I also consulted Stephan Wagner's Lab 5 webpage to assist with my understanding of PID controllers.</section></article></main></div>

@@ -1,0 +1,80 @@
+<!doctype html><html class="dark light" lang=en><head><meta charset=UTF-8><meta content="IE=edge" http-equiv=X-UA-Compatible><meta content="width=device-width,initial-scale=1.0" name=viewport><meta content=https://aee46.github.io name=base><title>
+         Lab 8
+        
+    </title><meta content="Lab 8" property=og:title><meta content="Robot Stunts" property=og:description><meta content="Robot Stunts" name=description><link href=/icon/favicon.png rel=icon type=image/png><link href=https://aee46.github.io/fonts.css rel=stylesheet><script src=https://aee46.github.io/js/codeblock.js></script><script src=https://aee46.github.io/js/toc.js></script><script src=https://aee46.github.io/js/note.js></script><script>MathJax = {
+              tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']]
+              }
+            };</script><script async id=MathJax-script src=https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js></script><link title="ECE 4160" href=https://aee46.github.io/atom.xml rel=alternate type=application/atom+xml><link href=https://aee46.github.io/theme/light.css rel=stylesheet><link href=https://aee46.github.io/theme/dark.css id=darkModeStyle rel=stylesheet><script src=https://aee46.github.io/js/themetoggle.js></script><script>setTheme(getSavedTheme());</script><link href=https://aee46.github.io/main.css media=screen rel=stylesheet><script src=https://aee46.github.io/js/mermaid.js></script><body><div class=content><header><div class=main><a href=https://aee46.github.io>ECE 4160</a></div><nav><a href=https://aee46.github.io/projects style=margin-left:.25em>/labs</a><a onclick="toggleTheme(); event.preventDefault();" href=# id=dark-mode-toggle> <img alt=Light id=sun-icon src=https://aee46.github.io/feather/sun.svg style=filter:invert()> <img alt=Dark id=moon-icon src=https://aee46.github.io/feather/moon.svg> </a><script>updateItemToggleTheme()</script></nav></header><main><article><div class=title><div class=page-header>Lab 8<span class=primary-color style=font-size:1.6em>.</span></div><div class=meta></div></div><div class=toc-container><h1 class=toc-title>Table of Contents</h1><ul class=toc-list><li><a href=https://aee46.github.io/projects/project-8/#robot-stunts-flip>Robot Stunts - Flip</a><li><a href=https://aee46.github.io/projects/project-8/#setup>Setup</a><li><a href=https://aee46.github.io/projects/project-8/#hardware-bugs>Hardware Bugs</a><li><a href=https://aee46.github.io/projects/project-8/#successful-flips>Successful Flips</a><li><a href=https://aee46.github.io/projects/project-8/#bloopers>Bloopers</a><li><a href=https://aee46.github.io/projects/project-8/#acknowledgements>Acknowledgements</a></ul></div><section class=body><h1 id=robot-stunts-flip>Robot Stunts - Flip</h1><p>For this lab, I chose to implement a flip stunt. This involves sending the robot at full speed towards a wall, and when the robot is roughly 1 foot away from the wall, it executes a flip and moves in an opposite direction away from the wall. I used one TOF sensor to measure the distance between the robot and the wall. When the robot reached a certain distance, I reversed the motors' direction, causing the robot to flip backwards.<h1 id=setup>Setup</h1><p>Implementing this stunt involved both updates to my robot's software and its physical structure. In order for the flip to execute successfully, the front of the robot needs to be weighted heavier than the back. If this is not the case, the robot simply reverses direction when its motors change direction without executing a flip. To weight the front of the robot, I used some spare laundry money (roughly 5 dollars in quarters). I placed the quarters in a plastic bag to condense them and then taped this weight to the front of my robot. This added about 125 grams of weight to the front of my robot. Luckily there was space in the front compartment of the robot so I placed the weight inside. This prevented th weight from dragging on the ground once the robot flips. Another important thing to note is that the weight should be on the top of the robot. If it is on the bottom (which is how I initially implemented it), the robot will not flip. Shown below is a picture of my weight system:</p><br><center><img alt=sensors height=400 src=/projects/weightlab8.jpg width=500></center><p>With this setup, I had to drive my robot upside down from its usual state. As you'll see in my code below, this results in driving the car with negative PWM values to move it forward and positive PWM values to drive it backwards. For the software setup, I implemented a simple bluetooth command using much of the same code used in previous labs.<pre class=language-Arduino data-lang=Arduino style=color:#61676c;background-color:#fafafa><code class=language-Arduino data-lang=Arduino><span>case LAB8_FLIP:{
+</span><span>
+</span><span>    lab8_first_time = true;
+</span><span>    lab8_second_time = false;
+</span><span>    
+</span><span>    distanceSensor2.startRanging();
+</span><span>    float lab8_start_time = millis();
+</span><span>    int index = 0;
+</span><span>
+</span><span>    while(millis() - lab8_start_time < 3000){ // Run stunt for maximum of 3 seconds
+</span><span>        lab8_current_time = millis();
+</span><span>        lab8_record_data();
+</span><span>
+</span><span>        if(lab8_current_distance > 1000){
+</span><span>            lab8_current_pwm = -100;
+</span><span>        }
+</span><span>        else{
+</span><span>            lab8_current_pwm = 100;
+</span><span>        }
+</span><span>        driveMotors(lab8_current_pwm);
+</span><span>        time_stamps[index] = lab8_current_time;
+</span><span>        tof1_stamps[index] = lab8_current_distance;
+</span><span>        DATA_READY_ARRAY[index] = lab8_data_ready;
+</span><span>        motor_speeds[index] = lab8_current_pwm;
+</span><span>        index += 1;
+</span><span>    }
+</span><span>    stop_motors();
+</span><span>    for(int i = 0; i < index; i++){ // If array does not fill in alloted time, only send recorded values and not empty indicies
+</span><span>        tx_estring_value.clear();
+</span><span>        tx_estring_value.append(time_stamps[i]);
+</span><span>        tx_estring_value.append("|");
+</span><span>        tx_estring_value.append(tof1_stamps[i]);
+</span><span>        tx_estring_value.append("|");
+</span><span>        tx_estring_value.append(DATA_READY_ARRAY[i]);
+</span><span>        tx_estring_value.append("|");
+</span><span>        tx_estring_value.append(motor_speeds[i]);
+</span><span>        tx_characteristic_string.writeValue(tx_estring_value.c_str());
+</span><span>    }
+</span><span>    break;
+</span><span>}
+</span></code></pre><p>The code executes for a total of three seconds before disabling the robot's motors. During these three seconds, the robot reads data from the front TOF sensor to determine when it should execute the flip. Through experimental testing, I determined the best distance to begin the flip execution was about one meter away from the wall. This caused the robot to actually flip just before crashing into the wall, but it needed time for the motors to reverse direction. When the flip execution was set to begin when the robot was one foot from the wall, it did not have enough time to flip and would instead crash. Once the robot is within one meter from the wall, it reverses the direction of the motors, resulting in a flip being executed. I recorded PWM and TOF data for debugging purposes.<p>Note that since I did not complete lab 7 (I was severely ill with the flu and had used up my slip weeks), my TOF recording function uses linear extrapolation instead of the Kalman filter. Shown below is the code I use to record TOF data:<pre class=language-Arduino data-lang=Arduino style=color:#61676c;background-color:#fafafa><code class=language-Arduino data-lang=Arduino><span>void lab8_record_data(){
+</span><span>  if(!distanceSensor2.checkForDataReady()){
+</span><span>    if(lab8_first_time == false && lab8_second_time == false){
+</span><span>      lab8_current_distance = lab8_last_reading + ((lab8_last_reading - lab8_previous_reading) / (lab8_last_time - lab8_previous_time)) * (millis() - lab8_last_time); 
+</span><span>    }
+</span><span>    else{
+</span><span>      lab8_current_distance = lab8_last_measured_distance;
+</span><span>    }
+</span><span>    
+</span><span>    lab8_data_ready = false;
+</span><span>  }
+</span><span>  else{
+</span><span>    lab8_current_distance = distanceSensor2.getDistance();
+</span><span>    lab8_last_measured_distance = lab8_current_distance;
+</span><span>    distanceSensor2.clearInterrupt();
+</span><span>    distanceSensor2.stopRanging();
+</span><span>    distanceSensor2.startRanging();
+</span><span>    lab8_data_ready = true;
+</span><span>    
+</span><span>    lab8_previous_reading = lab8_last_reading;
+</span><span>    lab8_last_reading = lab8_last_measured_distance;
+</span><span>    lab8_previous_time = lab8_last_time;
+</span><span>    lab8_last_time = lab8_current_time;
+</span><span>    if(lab8_first_time){
+</span><span>      lab8_first_time = false;
+</span><span>      lab8_second_time = true;
+</span><span>    }
+</span><span>    if(lab8_second_time){
+</span><span>      lab8_second_time = false;
+</span><span>    }
+</span><span>  }
+</span><span>}
+</span></code></pre><h1 id=hardware-bugs>Hardware Bugs</h1><p>It wouldn't be a proper Fast Robots lab if something didn't break at the worst possible time. Unfortunately, I encountered two hardware issues while completing this lab. Luckily, I was able to solve both of them and complete the lab on time!<p>First, I ran into issues with one of my TOF sensors recording inaccurate measurements when the robot was moving forward. I tested this several times by starting my robot 2-3 meters away from a wall and driving it forwards at half speed. Despite being over 2 meters away from the wall, the TOF sensor recorded that it was less than a meter away, as seen in the graph below. The sensor was set to its Long Distance Mode which has a maximum range of four meters. Additionally, the sensor recorded accurate measurements when the motors were off, and also while the motors were running but the robot was held stationary. I am not sure what caused this issue, but I fixed it by using my second TOF sensor in place of the broken one. Unfortunately, this TOF sensor was originally placed on the side of my robot, so its wire cable was quite short compared to the original front TOF sensor. This resulted in the new TOF sensor getting unplugged from the QWIIC connector frequently after the robot would crash or execute a flip. Luckily, I was able to (mostly) fix this issue by using lots of tape.<p>Shown here is a graph depiciting my inaccurate TOF sensor measurements. The blue line indiciates TOF measurements while the orange line indicates the motor PWM value scaled by 10 so that you can see when the motors are on and off. <br></p><center><img alt=sensors height=400 src=/projects/lab8tofbug.PNG width=500></center><p>The second issue that I encountered was my Artemis' battery connector breaking. This was the second time this has happened, so I need to look into a permanent way to avoid this.</p><br><center><img alt=sensors height=400 src=/projects/lab8battery.jpg width=500></center><p>I attempted to crimp a new pin onto the broken wire, but I was unable to do this successfully. I do not have access to crimping tools that work well with such small connector pins. Luckily, I was able to borrow a battery from another student, allowing me to continue the lab.<h1 id=successful-flips>Successful Flips</h1><p>With my hardware issues fixed (for now), I was able to consistently execute the flip stunt. Shown below are three proper successes where the robot returns across the starting line by moving in a relatively straight line. I was able to produce consistent results (>80%) with having the robot move in a straight line after executing the flip without PID orientation control. Implementing PID orientation control would result in extremely precise control of the robot's movement after the flip, but I found it unneccessary for this stunt.</p><center><a href="https://www.youtube.com/watch?v=eGy7wUVAQAU" title=Scope><img alt=Scope height=300 src=/projects/flip1.PNG width=400></a></center><br><center><img alt=sensors height=300 src=/projects/lab8tof1.PNG width=400><img alt=sensors height=300 src=/projects/lab8pwm1.PNG width=400></center><center><a href="https://www.youtube.com/watch?v=eBpJt5gkR8U" title=Scope><img alt=Scope height=300 src=/projects/flip2.PNG width=400></a></center><center><img alt=sensors height=300 src=/projects/lab8tof2.PNG width=400><img alt=sensors height=300 src=/projects/lab8pwm2.PNG width=400></center><center><a href=https://www.youtube.com/shorts/dTykkAJNZHk title=Scope><img alt=Scope height=300 src=/projects/flip3.PNG width=400></a></center><center><img alt=sensors height=300 src=/projects/lab8tof3.PNG width=400><img alt=sensors height=300 src=/projects/lab8pwm3.PNG width=400></center><p>As seen in the above videos, the robot is able to reliably execute the flip stunt multiple times. The robot executes the stunt roughly 1 second after it begins moving towards the wall. The flip takes about 1 second to execute, and the robot returns to its starting position in about 1 second.<h1 id=bloopers>Bloopers</h1><p>While not particularly exciting, I had my fair share of bloopers and unexpected behavior while completing this lab. This was mostly caused by the robot randomly disconnecting from Bluetooth or the TOF sensor getting disconnected. One blooper shows the car reversing backwards at the start. This indicates a TOF sensor measurement where it records a value less than 1000 mm, despite being farther than 1000 mm from the wall. The second blooper shows the robot successfully complete a flip but then decide to try to execute a flip again, causing it to reverse directions a second time. This is also caused by a TOF measurement error.</p><center><a href="https://www.youtube.com/watch?v=vj8wEg6iAl8" title=Scope><img alt=Scope height=300 src=/projects/bloop2.PNG width=400></a></center><center><a href=https://youtu.be/yIC4FqVCr-w title=Scope><img alt=Scope height=300 src=/projects/bloop1.PNG width=400></a></center><p>Overall, this lab was very fun to work on. It was cool to see the robot autonomously execute a stunt. I think that there are a lot of possibilities for more complex stunts that could be executed with different types of PID control and specific motor controls, and I may experiment with this if I have time in future weeks. Going forward, I definitely need to work on making my robot less prone to breaking. This will likely involved resoldering some of my sensors and creating a more robust wiring network.<h1 id=acknowledgements>Acknowledgements</h1><p>I would like to thank Rachel Arena for letting me use her Artemis battery when mine broke.</section></article></main></div>
